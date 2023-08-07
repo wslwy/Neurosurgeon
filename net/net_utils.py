@@ -120,6 +120,8 @@ def get_socket_server(ip, port, max_client_num=10):
     if "windows" in sys_platform:
         socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # windows
     else:
+        if not hasattr(socket, 'SO_REUSEPORT'):
+            socket.SO_REUSEPORT = 15
         socket_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1) # macos or linux
 
     socket_server.bind((ip, port))  # 绑定端口号

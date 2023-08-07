@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
         # 部署阶段 - 选择优化分层点
         upload_bandwidth = bandwidth_value.value  # MBps
-        partition_point = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=False)
+        partition_point = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
 
         # 使用云边协同的方式开始推理 ： 进行一次连接
         net_utils.start_client(ip,port,x,task_name,partition_point,device)
