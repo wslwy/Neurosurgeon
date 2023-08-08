@@ -15,6 +15,7 @@ def start_server(socket_server,device):
     :param device: 使用本地的cpu运行还是cuda运行
     :return: None
     """
+    start_time = time.time()
     # 等待客户端连接
     conn, client = wait_client(socket_server)
 
@@ -171,7 +172,7 @@ def wait_client(p):
     return conn,client
 
 
-def send_data(conn, x, msg="msg", show=True):
+def send_data(conn, x, msg="msg", show=True, DBG=True):
     """
     向另一方发送较长数据 例如DNN模型中间层产生的tensor
     注意：接收数据需要使用get_data函数
@@ -184,11 +185,17 @@ def send_data(conn, x, msg="msg", show=True):
     """
     send_x = pickle.dumps(x)
     conn.sendall(pickle.dumps(len(send_x)))
-    print(f'len of data: {len(send_x)}')
-    resp_len = conn.recv(1024).decode()
-
-    conn.sendall(send_x)
-    resp_data = conn.recv(1024).decode()
+    if DBG:
+        print(f'send_data: sent len data: {len(send_x)}')
+        
+    resp_len = conn.recv(1024).decode()     # get yes len msg
+    if DBG:
+        print(f'send_data: get sent len data back: {len(send_x)}')
+    
+    conn.sendall(send_x)                # send intermediate data
+    if DBG:
+        print(f'send_data: sent intermediate data: {len(send_x)}')
+    resp_data = conn.recv(1024).decode()    # get yes msg
     if show:
         print(f"get {resp_data} , {msg} has been sent successfully")  # 表示对面已收到数据
 
@@ -203,26 +210,18 @@ def send_short_data(conn, x, msg="msg", show=True):
 
 
 
-def get_data(conn):
+def get_data(conn, DBG=True):
     """
     获取一次长数据 主要分为 获取数据长度 - 回应 - 获取数据 - 回应
     :param conn: 建立好的连接
     :return: 解析后的数据 和 获取数据消耗的时延
     """
-    # 接收数据长度
-    #chunks  = []
-    #while True:
-    #   chunk   = conn.recv(1024)
-    #   if not chunk:
-    #       break
-    #   chunks.append(chunk)
-    #try:
-    #   data_len = pickle.loads(b"".join(chunks))
-    #except:
-    #   print("Received incomplete data or data was empty.")
-    
-    data_len = pickle.loads(conn.recv(1024))  # break down Error 
-    print(f'data_len: {data_len}')
+    # 接收数据长度  
+    if DBG:
+        print(f'get_data: wait for data len')
+    data_len = pickle.loads(conn.recv(1024*2))  # not get info from client
+    if DBG:
+        print(f'get_data: get data len: {data_len}')
     conn.sendall("yes len".encode())
 
     # 接收数据并记录时延

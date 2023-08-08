@@ -18,11 +18,14 @@ import multiprocessing
     "-t", "--type"          模型种类参数 "alex_net" "vgg_net" "le_net" "mobile_net"
     "-i", "--ip"            服务端 ip地址
     "-p", "--port"          服务端 开放端口
-    "-d", "--device"     是否开启客户端GPU计算 cpu or cuda
+    "-d", "--device"        是否开启客户端GPU计算 cpu or cuda
+    "-n", "--network"       网络类型 wifi or 3g or lte
+    "-s", "--speed"         网络速度MB/s for wifi/lte  kB/s for 3g  
 """
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "t:i:p:d:", ["type=","ip=","port=","device_on="])
+        opts, args = getopt.getopt(sys.argv[1:], "t:i:p:d:n:s:", ["type=","ip=","port=","device=","network=","speed="])
+        
     except getopt.GetoptError:
         print('input argv error')
         sys.exit(2)
@@ -31,6 +34,9 @@ if __name__ == '__main__':
     model_type = ""
     ip,port = "127.0.0.1",999
     device = "cpu"
+    network_type = "wifi"
+    speed = 10
+    
     for opt, arg in opts:
         if opt in ("-t", "--type"):
             model_type = arg
@@ -40,6 +46,11 @@ if __name__ == '__main__':
             port = int(arg)
         elif opt in ("-d", "--device"):
             device = arg
+        elif opt in ("-n", "--network"):
+            network_type = arg
+        elif opt in ("-s", "--speed"):
+            speed = int(arg)
+                  
 
     if device == "cuda" and torch.cuda.is_available() == False:
         raise RuntimeError("本机器上不可以使用cuda")
@@ -67,7 +78,7 @@ if __name__ == '__main__':
 
     # 部署阶段 - 选择优化分层点
     #upload_bandwidth = bandwidth_value.value  # MBps
-    upload_bandwidth = 10   # MBps
+    upload_bandwidth = speed   
     partition_point = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
 
     # 使用云边协同的方式进行模拟

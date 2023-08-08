@@ -47,11 +47,15 @@ def scheduler_for_bandwidth_monitor_edge(ip, interval, bandwidth_value):
     client 启动指令 python tasks_edge_api.py -i 127.0.0.1 -p 9999 -d cpu
     "-i", "--ip"            服务端 ip地址
     "-p", "--port"          服务端 开放端口
-    "-d", "--device"     是否开启客户端GPU计算 cpu or cuda
+    "-d", "--device"        是否开启客户端GPU计算 cpu or cuda
+    
+    "-e", "--epoch"         训练轮数
+    "-n", "--network"       网络类型 wifi or 3g or lte
+    "-s", "--speed"         网络速度MB/s for wifi/lte  kB/s for 3g 
 """
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "i:p:d:", ["ip=","port=","device_on="])
+        opts, args = getopt.getopt(sys.argv[1:], "i:p:d:e:n:s:", ["ip=","port=","device=","epoch=","network=","speed="])
     except getopt.GetoptError:
         print('input argv error')
         sys.exit(2)
@@ -59,6 +63,10 @@ if __name__ == '__main__':
     # 处理 options中以元组的方式存在(opt,arg)
     ip,port = "127.0.0.1",999
     device = "cpu"
+    epoch = 10
+    network_type = "wifi"
+    speed = 10
+     
     for opt, arg in opts:
         if opt in ("-i", "--ip"):
             ip = arg
@@ -66,6 +74,12 @@ if __name__ == '__main__':
             port = int(arg)
         elif opt in ("-d", "--device"):
             device = arg
+        elif opt in ("-e", "--epoch"):
+            epoch = int(arg)
+        elif opt in ("-n", "--network"):
+            network_type = arg
+        elif opt in ("-s", "--speed"):
+            speed = int(arg)
 
     if device == "cuda" and torch.cuda.is_available() == False:
         raise RuntimeError("本机器上不可以使用cuda")
@@ -73,8 +87,8 @@ if __name__ == '__main__':
 
     # 随机创建任务队列 总共40个DNN推理任务
     tasks_name = ["alex_net", "vgg_net", "le_net", "mobile_net"]
-    tasks_list = []
-    for i in range(40):
+    tasks_list = ["vgg_net"]
+    for i in range(epoch):
         task_id = random.randint(0, 3)
         tasks_list.append(tasks_name[task_id])
     print(f"tasks list info : {tasks_list}")
@@ -101,8 +115,9 @@ if __name__ == '__main__':
         model = get_dnn_model(task_name)
 
         # 部署阶段 - 选择优化分层点
-        upload_bandwidth = bandwidth_value.value  # MBps
-        partition_point = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
+        bandwidth_value.value = speed
+        upload_bandwidth = bandwidth_value.value 
+        partition_point = neuron_surgeon_deployment(model,network_type=network_type,define_speed=upload_bandwidth,show=True)
 
         # 使用云边协同的方式开始推理 ： 进行一次连接
         net_utils.start_client(ip,port,x,task_name,partition_point,device)
