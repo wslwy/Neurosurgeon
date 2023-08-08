@@ -190,7 +190,11 @@ def send_data(conn, x, msg="msg", show=True, DBG=True):
         
     resp_len = conn.recv(1024).decode()     # get yes len msg
     if DBG:
-        print(f'send_data: get sent len data back: {len(send_x)}')
+        print(f'send_data: get sent len data back: {resp_len}')
+    if resp_len == 'not receive':
+        conn.sendall(pickle.dumps(len(send_x)))
+        resp_len = conn.recv(1024).decode()
+        print(f'send_data2: get sent len data back: {resp_len}')
     
     conn.sendall(send_x)                # send intermediate data
     if DBG:
@@ -217,11 +221,19 @@ def get_data(conn, DBG=True):
     :return: 解析后的数据 和 获取数据消耗的时延
     """
     # 接收数据长度  
-    if DBG:
-        print(f'get_data: wait for data len')
-    data_len = pickle.loads(conn.recv(1024*2))  # not get info from client
-    if DBG:
-        print(f'get_data: get data len: {data_len}')
+    
+    conn.settimeout(5)
+    try:
+        if DBG:
+            print(f'get_data: wait for data len')
+        data_len = pickle.loads(conn.recv(1024))  # not get info from client when first run inference of vgg model
+        if DBG:
+            print(f'get_data: get data len: {(data_len)}')
+    except socket.timeout:
+        conn.sendall("not receive".encode())
+        print(f'get_data: send notrsv msg')
+        data_len = pickle.loads(conn.recv(1024))
+        
     conn.sendall("yes len".encode())
 
     # 接收数据并记录时延
