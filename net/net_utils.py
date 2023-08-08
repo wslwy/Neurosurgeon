@@ -184,6 +184,7 @@ def send_data(conn, x, msg="msg", show=True):
     """
     send_x = pickle.dumps(x)
     conn.sendall(pickle.dumps(len(send_x)))
+    print(f'len of data: {len(send_x)}')
     resp_len = conn.recv(1024).decode()
 
     conn.sendall(send_x)
@@ -209,7 +210,19 @@ def get_data(conn):
     :return: 解析后的数据 和 获取数据消耗的时延
     """
     # 接收数据长度
-    data_len = pickle.loads(conn.recv(1024))
+    #chunks  = []
+    #while True:
+    #   chunk   = conn.recv(1024)
+    #   if not chunk:
+    #       break
+    #   chunks.append(chunk)
+    #try:
+    #   data_len = pickle.loads(b"".join(chunks))
+    #except:
+    #   print("Received incomplete data or data was empty.")
+    
+    data_len = pickle.loads(conn.recv(1024))  # break down Error 
+    print(f'data_len: {data_len}')
     conn.sendall("yes len".encode())
 
     # 接收数据并记录时延

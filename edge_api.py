@@ -54,6 +54,7 @@ if __name__ == '__main__':
 
     # 等待子进程结束后获取到带宽数据
     monitor_cli.join()
+    
     print(f"get bandwidth value : {bandwidth_value.value} MB/s")
 
 
@@ -65,7 +66,8 @@ if __name__ == '__main__':
     model = get_dnn_model(model_type)
 
     # 部署阶段 - 选择优化分层点
-    upload_bandwidth = bandwidth_value.value  # MBps
+    #upload_bandwidth = bandwidth_value.value  # MBps
+    upload_bandwidth = 10   # MBps
     partition_point = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
 
     # 使用云边协同的方式进行模拟
