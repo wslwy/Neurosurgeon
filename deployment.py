@@ -69,8 +69,8 @@ def neuron_surgeon_deployment(model,network_type,define_speed,show=False):
 
         now_layer = get_layer(model,index)
         if show:
-            print(f"index {layer_index + 1} - layer : {now_layer} \n"
-                  f"edge latency : {edge_lat:.2f} ms , transmit latency : {transmission_lat:.2f} ms , "
+            print(f"index {layer_index} - layer : {now_layer} \n"
+                  f"edge latency : {edge_lat:.2f} ms , transmit latency : {transmission_lat:.2f} ms, size : {transport_size}, "
                   f"cloud latency : {cloud_lat:.2f} ms , total latency : {total_lat:.2f} ms")
             print(
                 "----------------------------------------------------------------------------------------------------------")
