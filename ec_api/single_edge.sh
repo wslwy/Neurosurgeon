@@ -9,4 +9,4 @@
 
 
 #python ../edge_api.py -i 127.0.0.1 -p 9999 -d cpu -s 5 -t vgg_net -n wifi
-python ../edge_api.py -i 127.0.0.1 -p 9999 -d cpu -t vgg_net -s 5
+python edge_api.py -i 127.0.0.1 -p 9999 -d cpu -t vgg_net -s 5

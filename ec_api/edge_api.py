@@ -10,7 +10,7 @@ import multiprocessing
 
 from net import net_utils
 from utils.inference_utils import get_dnn_model
-from deployment import neuron_surgeon_deployment
+from utils.deployment import neuron_surgeon_deployment
 from net.monitor_client import MonitorClient
 
 

@@ -5,4 +5,4 @@
 #    "-p", "--port"          服务端 开放端口
 #    "-d", "--device"     是否开启服务端GPU计算 cpu or cuda
 
-python ../cloud_api.py -i 127.0.0.1 -p 9999 -d cuda
+python cloud_api.py -i 127.0.0.1 -p 9999 -d cuda

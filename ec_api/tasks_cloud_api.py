@@ -1,5 +1,7 @@
 import torch
 import sys,getopt
+sys.path.append("..") 
+
 from net import net_utils
 import warnings
 warnings.filterwarnings("ignore")
