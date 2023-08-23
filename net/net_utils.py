@@ -38,7 +38,6 @@ def start_server(socket_server,device):
     
     # 接收中间数据并返回传输时延
     edge_output,transfer_latency = get_data(conn)
-    
     print(f"get edge_output and transfer latency successfully.")
     send_short_data(conn,transfer_latency,"transfer latency")
 
