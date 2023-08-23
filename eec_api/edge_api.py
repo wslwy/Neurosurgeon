@@ -5,7 +5,7 @@ warnings.filterwarnings("ignore")
 
 import torch
 
-from net import net_utils
+from net import eec_netutils as net_utils
 from net.monitor_server import MonitorServer
 
 """
@@ -24,7 +24,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     # 处理 options中以元组的方式存在(opt,arg)
-    ip,port = "127.0.0.1",8090
+    ip,port0, port1 = "127.0.0.1",1145,1514
     device = "cpu"
     for opt, arg in opts:
         if opt in ("-i", "--ip"):
@@ -37,8 +37,11 @@ if __name__ == '__main__':
 
     if device == "cuda" and torch.cuda.is_available() == False:
         raise RuntimeError("本机器上不可以使用cuda")
-
+    
+    socket_server = net_utils.get_socket_server(ip,port0)
+    conn1   = net_utils.get_socket_client(ip, port1)
+    print(f'successfully connect to cloud server: {ip}:{port1}')
+    
     while True:
-        # 开启服务端进行监听
-        socket_server = net_utils.get_socket_server(ip,port)
-        net_utils.start_server(socket_server,device)
+        # 开启服务端进行监听 
+        net_utils.start_edge_server(socket_server,device, conn1)

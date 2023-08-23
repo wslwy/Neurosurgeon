@@ -8,7 +8,7 @@ ssl._create_default_https_context = ssl._create_unverified_context
 from multiprocessing    import Process
 import multiprocessing
 
-from net import net_utils
+from net import eec_netutils as net_utils
 from utils.inference_utils  import get_dnn_model
 from utils.eec_deployment   import neuron_surgeon_deployment
 from net.monitor_client import MonitorClient
@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     # 处理 options中以元组的方式存在(opt,arg)
     model_type = "vgg_net"
-    ip,port = "127.0.0.1",9999
+    ip,port0 = "127.0.0.1",1145
     device = "cpu"
     network_type = "wifi"
     speed = 10
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         elif opt in ("-i", "--ip"):
             ip = arg
         elif opt in ("-p", "--port"):
-            port = int(arg)
+            port0 = int(arg)
         elif opt in ("-d", "--device"):
             device = arg
         elif opt in ("-n", "--network"):
@@ -69,5 +69,5 @@ if __name__ == '__main__':
     ee_layer_index, ec_layer_index  = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
 
     # 使用云边协同的方式进行模拟
-    net_utils.start_client(ip,port,x,model_type,ee_layer_index, ec_layer_index, device)
+    net_utils.start_end_client(ip,port0,x,model_type,ee_layer_index, ec_layer_index, device)
 

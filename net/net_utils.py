@@ -42,7 +42,7 @@ def start_server(socket_server,device):
     send_short_data(conn,transfer_latency,"transfer latency")
 
     # 连续发送两个消息 防止消息粘包
-    conn.recv(40)
+    #conn.recv(40)
 
     inference_utils.warmUp(cloud_model, edge_output, device)
     # 记录云端推理时延
@@ -53,7 +53,7 @@ def start_server(socket_server,device):
 
 
 
-def start_client(ip,port,input_x,model_type,partition_point,device):
+def start_client(ip,port,input_x,model_type,partition_point,device, conn):
     """
     启动一个client客户端 向server端发起推理请求
     一般仅在 edge_api.py 中直接调用
@@ -65,7 +65,7 @@ def start_client(ip,port,input_x,model_type,partition_point,device):
     :param device: 在本地cpu运行还是cuda运行
     :return: None
     """
-    conn = get_socket_client(ip, port)
+    #conn = get_socket_client(ip, port)
 
     # 发送模型类型
     send_short_data(conn, model_type, msg="model type")
@@ -93,13 +93,13 @@ def start_client(ip,port,input_x,model_type,partition_point,device):
     print(f"{model_type} 传输完成 - {transfer_latency:.3f} ms")
 
     # 连续接收两个消息 防止消息粘包
-    conn.sendall("avoid sticky".encode())
+    #conn.sendall("avoid sticky".encode())
 
     cloud_latency = get_short_data(conn)
     print(f"{model_type} 在云端设备上推理完成 - {cloud_latency:.3f} ms")
 
     print("================= DNN Collaborative Inference Finished. ===================")
-    conn.close()
+    #conn.close()
 
 
 
@@ -146,7 +146,6 @@ def close_conn(conn):
     :return: 终止连接
     """
     conn.close()
-
 
 
 def close_socket(p):

@@ -39,7 +39,7 @@ def start_end_client(ip,port0,input_x,model_type,ee_layer_index, ec_layer_index,
     end_output,end_latency = inference_utils.recordTime(end_model,input_x,device,epoch_cpu=30,epoch_gpu=100)
     print(f"{model_type} 在终端设备上推理完成 - {end_latency:.3f} ms")
     
-    # 连续接收两个消息 防止消息粘包
+    # 连续接收两个消息 防止消息粘包 end-egde
     conn0.recv(40)
     # 发送中间数据 to edge_device
     send_data(conn0,end_output,"end output")
@@ -48,15 +48,15 @@ def start_end_client(ip,port0,input_x,model_type,ee_layer_index, ec_layer_index,
     print(f"{model_type} 传输完成 - {transfer_latency:.3f} ms")
 
     # 连续接收两个消息 防止消息粘包
-    conn0.sendall("avoid sticky".encode())
+    #conn0.sendall("avoid sticky".encode())
 
     cloud_latency = get_short_data(conn0)
-    print(f"{model_type} 在云端设备上推理完成 - {cloud_latency:.3f} ms")
+    print(f"{model_type} 在云端设备上推理完成 - {cloud_latency[0]:.3f}, {cloud_latency[1]:.3f} ms")
 
     print("================= DNN Collaborative Inference Finished. ===================")
     conn0.close()
     
-def start_cloud_server(socket_server2, device):
+def start_cloud_server(conn1, device):
     """_进行推理云服务器_
     监听来自边缘服务器的消息
     Args:
@@ -64,8 +64,6 @@ def start_cloud_server(socket_server2, device):
         device (_type_): _cpu or gpu caculate device_
     """
     start_time = time.time()
-    # 等待edge server连接
-    conn1, client = wait_client(socket_server2)
     
     # 接收模型类型
     model_type = get_short_data(conn1)
@@ -81,7 +79,7 @@ def start_cloud_server(socket_server2, device):
     cloud_model = cloud_model.to(device)
     
     # 连续发送两个消息 防止消息粘包
-    #conn1.sendall("avoid sticky".encode())
+    conn1.sendall("avoid sticky".encode())
     
     # 接收中间数据并返回传输时延
     edge_output,transfer_latency = get_data(conn1)
@@ -99,8 +97,7 @@ def start_cloud_server(socket_server2, device):
     print("================= DNN Collaborative Inference Finished. ===================")
 
 
-
-def start_edge_server(socket_server1, device, ip, port1, ):    #edge从end获得数据，并将数据传输给cloud
+def start_edge_server(socket_server1, device, conn1):    #edge从end获得数据，并将数据传输给cloud
     """
     开始监听客户端传来的消息
     并将数据传输给cloud
@@ -110,7 +107,7 @@ def start_edge_server(socket_server1, device, ip, port1, ):    #edge从end获得
     :return: None
     """
     start_time = time.time()
-    conn1   = get_socket_client(ip, port1)
+
     # 等待客户端连接
     conn0, client = wait_client(socket_server1)
 
@@ -128,13 +125,13 @@ def start_edge_server(socket_server1, device, ip, port1, ):    #edge从end获得
     partition_point = get_short_data(conn0)
     print(f"get partition point {partition_point[0]}, {partition_point[1]} successfully.")
     # 发送划分点
-    send_short_data(conn1, partition_point, msg="partition strategy")
+    send_short_data(conn1, partition_point, msg="partition strategy")   # Appear bug
 
     _,edge_model    = inference_utils.model_partition(model, partition_point[0])
     edge_model,_    = inference_utils.model_partition(model, partition_point[1])  
     edge_model = edge_model.to(device)
     
-    # 连续发送两个消息 防止消息粘包 avoid sticky
+    # 连续发送两个消息 防止消息粘包 end-edge
     conn0.sendall("avoid sticky".encode())
     # 接收中间数据并返回传输时延
     edge_output,transfer_latency = get_data(conn0)
@@ -142,12 +139,15 @@ def start_edge_server(socket_server1, device, ip, port1, ):    #edge从end获得
     send_short_data(conn0,transfer_latency,"transfer latency")
 
     # 连续发送两个消息 防止消息粘包
-    conn0.recv(40)
+    #conn0.recv(40)
 
     inference_utils.warmUp(edge_model, edge_output, device)
     # 记录边缘服务器端推理时延
     edge_output,edge_latency = inference_utils.recordTime(edge_model, edge_output,device,epoch_cpu=30,epoch_gpu=100)
     #send_short_data(conn0, edge_latency, "edge latency")
+    
+    # 连续接收两个消息 防止消息粘包 edge-cloud
+    conn1.recv(40)
     
     send_data(conn1,edge_output,"edge output")
     transfer_latency = get_short_data(conn1)
@@ -159,7 +159,7 @@ def start_edge_server(socket_server1, device, ip, port1, ):    #edge从end获得
     send_short_data(conn0, [edge_latency,cloud_latency], "edge latency")
 
     print("================= DNN Collaborative Inference Finished. ===================")
-    conn1.close()
+    #conn1.close()
 
 
 def get_socket_server(ip, port, max_client_num=10):
@@ -314,7 +314,16 @@ def get_data(conn, DBG=True):
 
 def get_short_data(conn):
     """ 获取短数据"""
-    return pickle.loads(conn.recv(1024))
+    socket.setdefaulttimeout(120)
+    
+    data    = None
+    while data == None:
+        try:
+            data    = conn.recv(1024)
+        except:
+            print('wait for recv short data')
+
+    return pickle.loads(data)
 
 
 def get_bandwidth():

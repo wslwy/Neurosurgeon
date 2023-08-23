@@ -84,5 +84,6 @@ if __name__ == '__main__':
     partition_point = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
 
     # 使用云边协同的方式进行模拟
-    net_utils.start_client(ip,port,x,model_type,partition_point,device)
-
+    conn    = net_utils.get_socket_client(ip, port)
+    net_utils.start_client(ip,port,x,model_type,partition_point,device, conn)
+    conn.close()
