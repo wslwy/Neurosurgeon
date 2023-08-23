@@ -39,15 +39,6 @@ if __name__ == '__main__':
         raise RuntimeError("本机器上不可以使用cuda")
 
     while True:
-        # 开启：带宽监测服务端
-        #monitor_ser = MonitorServer(ip=ip)
-        #monitor_ser.start()
-        #monitor_ser.join()
-
-
         # 开启服务端进行监听
         socket_server = net_utils.get_socket_server(ip,port)
         net_utils.start_server(socket_server,device)
-
-        #monitor_ser.terminate()
-

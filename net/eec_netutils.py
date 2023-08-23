@@ -7,9 +7,71 @@ import speedtest as spt
 from utils import inference_utils
 
 
-def start_server(socket_server,device):
+def start_end_client(ip,port0,input_x,model_type,ee_layer_index, ec_layer_index, device):
+    """
+    启动一个client客户端 向server端发起推理请求
+    一般仅在 edge_api.py 中直接调用
+    :param ip: server端的ip地址
+    :param port: server端的端口地址
+    :param model_type: 选用的模型类型
+    :param input_x: 初始输入
+    :param partition_point 模型划分点
+    :param device: 在本地cpu运行还是cuda运行
+    :return: None
+    """
+    conn = get_socket_client(ip, port0)
+
+    # 发送模型类型
+    send_short_data(conn, model_type, msg="model type")
+
+    # 读取模型
+    model = inference_utils.get_dnn_model(model_type)
+
+    # 发送划分点
+    partition_point = [ee_layer_index, ec_layer_index]
+    send_short_data(conn,partition_point,msg="partition strategy")
+
+    end_model, _ = inference_utils.model_partition(model, ee_layer_index)
+    end_model = end_model.to(device)
+
+    # 开始边缘端的推理 首先进行预热
+    inference_utils.warmUp(end_model, input_x, device)
+    end_output,end_latency = inference_utils.recordTime(end_model,input_x,device,epoch_cpu=30,epoch_gpu=100)
+    print(f"{model_type} 在终端设备上推理完成 - {end_latency:.3f} ms")
+
+    # 发送中间数据 to edge_device
+    send_data(conn,end_output,"end output")
+
+    # 连续接收两个消息 防止消息粘包
+    conn.sendall("avoid  sticky".encode())
+
+    transfer_latency = get_short_data(conn)
+    print(f"{model_type} 传输完成 - {transfer_latency:.3f} ms")
+
+    # 连续接收两个消息 防止消息粘包
+    conn.sendall("avoid  sticky".encode())
+
+    cloud_latency = get_short_data(conn)
+    print(f"{model_type} 在云端设备上推理完成 - {cloud_latency:.3f} ms")
+
+    print("================= DNN Collaborative Inference Finished. ===================")
+    conn.close()
+    
+def start_cloud_server(socket_server2, device):
+    """_进行推理云服务器_
+    监听来自边缘服务器的消息
+    Args:
+        socket_server2 (_type_): _socket服务器_
+        device (_type_): _cpu or gpu caculate device_
+    """
+    start_time = time.time()
+
+
+
+def start_edge_server(socket_server1,device, port1):    #edge从end获得数据，并将数据传输给cloud
     """
     开始监听客户端传来的消息
+    并将数据传输给cloud
     一般仅在 cloud_api.py 中直接调用
     :param socket_server: socket服务端
     :param device: 使用本地的cpu运行还是cuda运行
@@ -17,7 +79,7 @@ def start_server(socket_server,device):
     """
     start_time = time.time()
     # 等待客户端连接
-    conn, client = wait_client(socket_server)
+    conn, client = wait_client(socket_server1)
 
     # 接收模型类型
     model_type = get_short_data(conn)
@@ -28,17 +90,18 @@ def start_server(socket_server,device):
 
     # 接收模型分层点
     partition_point = get_short_data(conn)
-    print(f"get partition point successfully.")
+    print(f"get partition point {partition_point[0]}, {partition_point[1]} successfully.")
 
-    _,cloud_model = inference_utils.model_partition(model, partition_point)
+    _,edge_model = inference_utils.model_partition(model, partition_point[0])
     cloud_model = cloud_model.to(device)
 
-    # 连续发送两个消息 防止消息粘包
-    conn.sendall("avoid sticky".encode())
-    
+
     # 接收中间数据并返回传输时延
     edge_output,transfer_latency = get_data(conn)
-    
+
+    # 连续发送两个消息 防止消息粘包
+    conn.recv(40)
+
     print(f"get edge_output and transfer latency successfully.")
     send_short_data(conn,transfer_latency,"transfer latency")
 
@@ -51,56 +114,6 @@ def start_server(socket_server,device):
     send_short_data(conn, cloud_latency, "cloud latency")
 
     print("================= DNN Collaborative Inference Finished. ===================")
-
-
-
-def start_client(ip,port,input_x,model_type,partition_point,device):
-    """
-    启动一个client客户端 向server端发起推理请求
-    一般仅在 edge_api.py 中直接调用
-    :param ip: server端的ip地址
-    :param port: server端的端口地址
-    :param model_type: 选用的模型类型
-    :param input_x: 初始输入
-    :param partition_point 模型划分点
-    :param device: 在本地cpu运行还是cuda运行
-    :return: None
-    """
-    conn = get_socket_client(ip, port)
-
-    # 发送模型类型
-    send_short_data(conn, model_type, msg="model type")
-
-    # 读取模型
-    model = inference_utils.get_dnn_model(model_type)
-
-    # 发送划分点
-    send_short_data(conn,partition_point,msg="partition strategy")
-
-    edge_model, _ = inference_utils.model_partition(model, partition_point)
-    edge_model = edge_model.to(device)
-
-    # 开始边缘端的推理 首先进行预热
-    inference_utils.warmUp(edge_model, input_x, device)
-    edge_output,edge_latency = inference_utils.recordTime(edge_model,input_x,device,epoch_cpu=30,epoch_gpu=100)
-    print(f"{model_type} 在边缘端设备上推理完成 - {edge_latency:.3f} ms")
-    
-    # 连续接收两个消息 防止消息粘包
-    conn.recv(40)
-    # 发送中间数据
-    send_data(conn,edge_output,"edge output")
-
-    transfer_latency = get_short_data(conn)
-    print(f"{model_type} 传输完成 - {transfer_latency:.3f} ms")
-
-    # 连续接收两个消息 防止消息粘包
-    conn.sendall("avoid sticky".encode())
-
-    cloud_latency = get_short_data(conn)
-    print(f"{model_type} 在云端设备上推理完成 - {cloud_latency:.3f} ms")
-
-    print("================= DNN Collaborative Inference Finished. ===================")
-    conn.close()
 
 
 
@@ -189,6 +202,7 @@ def send_data(conn, x, msg="msg", show=True, DBG=True):
     resp_len = conn.recv(1024).decode()     # get yes len msg
     if DBG:
         print(f'send_data: get sent len data back: {resp_len}')
+        
     if resp_len == 'not receive':
         conn.sendall(pickle.dumps(len(send_x)))
         resp_len = conn.recv(1024).decode()

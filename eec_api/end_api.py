@@ -5,12 +5,12 @@ import warnings
 warnings.filterwarnings("ignore")
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
-from multiprocessing import Process
+from multiprocessing    import Process
 import multiprocessing
 
 from net import net_utils
-from utils.inference_utils import get_dnn_model
-from utils.deployment import neuron_surgeon_deployment
+from utils.inference_utils  import get_dnn_model
+from utils.eec_deployment   import neuron_surgeon_deployment
 from net.monitor_client import MonitorClient
 
 
@@ -33,8 +33,8 @@ if __name__ == '__main__':
         sys.exit(2)
 
     # 处理 options中以元组的方式存在(opt,arg)
-    model_type = ""
-    ip,port = "127.0.0.1",999
+    model_type = "vgg_net"
+    ip,port = "127.0.0.1",9999
     device = "cpu"
     network_type = "wifi"
     speed = 10
@@ -57,20 +57,6 @@ if __name__ == '__main__':
     if device == "cuda" and torch.cuda.is_available() == False:
         raise RuntimeError("本机器上不可以使用cuda")
 
-
-    # 开启：带宽监测客户端
-    # 如果没有两个设备测试的条件 可以使用下面的方式 将带宽自定义
-    # bandwidth_value = 10  #Mbps
-    #   bandwidth_value = multiprocessing.Value('d', 0.0)
-    #   monitor_cli = MonitorClient(ip=ip, bandwidth_value=bandwidth_value)
-    #   monitor_cli.start()
-#   
-    #   # 等待子进程结束后获取到带宽数据
-    #   monitor_cli.join()
-    #   
-    #   print(f"get bandwidth value : {bandwidth_value.value} MB/s")
-
-
     # step2 准备input数据
     x = torch.rand(size=(1, 3, 224, 224), requires_grad=False)
     x = x.to(device)
@@ -79,10 +65,9 @@ if __name__ == '__main__':
     model = get_dnn_model(model_type)
 
     # 部署阶段 - 选择优化分层点
-    #upload_bandwidth = bandwidth_value.value  # MBps
-    upload_bandwidth = speed   
-    partition_point = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
+    upload_bandwidth    = speed   
+    ee_layer_index, ec_layer_index  = neuron_surgeon_deployment(model,network_type="wifi",define_speed=upload_bandwidth,show=True)
 
     # 使用云边协同的方式进行模拟
-    net_utils.start_client(ip,port,x,model_type,partition_point,device)
+    net_utils.start_client(ip,port,x,model_type,ee_layer_index, ec_layer_index, device)
 
