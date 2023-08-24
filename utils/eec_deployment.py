@@ -36,6 +36,10 @@ def neuron_surgeon_deployment(model,network_type,define_speed,show=False):
     ee_layer_index  = 0
     ec_layer_index  = 0
     
+    for index1 in range(len(model)+1):
+        for index2 in range(index1,range(len(model)+1)):
+            1
+        
     return ee_layer_index, ec_layer_index
 
 

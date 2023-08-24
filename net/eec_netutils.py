@@ -37,7 +37,7 @@ def start_end_client(ip,port0,input_x,model_type,ee_layer_index, ec_layer_index,
     # 开始边缘端的推理 首先进行预热
     inference_utils.warmUp(end_model, input_x, device)
     end_output,end_latency = inference_utils.recordTime(end_model,input_x,device,epoch_cpu=30,epoch_gpu=100)
-    print(f"{model_type} 在终端设备上推理完成 - {end_latency:.3f} ms")
+    print(f"start_end_client: {model_type} 在终端设备上推理完成 - {end_latency:.3f} ms")
     
     # 连续接收两个消息 防止消息粘包 end-egde
     conn0.recv(40)
@@ -45,13 +45,13 @@ def start_end_client(ip,port0,input_x,model_type,ee_layer_index, ec_layer_index,
     send_data(conn0,end_output,"end output")
 
     transfer_latency = get_short_data(conn0)
-    print(f"{model_type} 传输完成 - {transfer_latency:.3f} ms")
+    print(f"start_end_client: {model_type} 传输完成 - {transfer_latency:.3f} ms")
 
     # 连续接收两个消息 防止消息粘包
     #conn0.sendall("avoid sticky".encode())
 
     cloud_latency = get_short_data(conn0)
-    print(f"{model_type} 在云端设备上推理完成 - {cloud_latency[0]:.3f}, {cloud_latency[1]:.3f} ms")
+    print(f"start_end_client: {model_type} 在云端设备上推理完成 - {cloud_latency[0]:.3f}, {cloud_latency[1]:.3f} ms")
 
     print("================= DNN Collaborative Inference Finished. ===================")
     conn0.close()
@@ -67,13 +67,13 @@ def start_cloud_server(conn1, device):
     
     # 接收模型类型
     model_type = get_short_data(conn1)
-    print(f"get model type: {model_type} successfully.")
+    print(f"start_cloud_server: get model type: {model_type} successfully.")
     # 读取模型
     model = inference_utils.get_dnn_model(model_type)
     
     # 接收模型分层点
     partition_point = get_short_data(conn1)
-    print(f"get partition point: {partition_point} successfully.")   
+    print(f"start_cloud_server: get partition point: {partition_point} successfully.")   
 
     _,cloud_model = inference_utils.model_partition(model, partition_point[1])
     cloud_model = cloud_model.to(device)
@@ -83,7 +83,7 @@ def start_cloud_server(conn1, device):
     
     # 接收中间数据并返回传输时延
     edge_output,transfer_latency = get_data(conn1)
-    print(f"get edge_output and transfer latency successfully.")
+    print(f"start_cloud_server: get edge_output and transfer latency successfully.")
     send_short_data(conn1,transfer_latency,"transfer latency")
     
     # 连续发送两个消息 防止消息粘包
@@ -113,7 +113,7 @@ def start_edge_server(socket_server1, device, conn1):    #edge从end获得数据
 
     # 接收模型类型
     model_type = get_short_data(conn0)
-    print(f"get model type: {model_type} successfully.")
+    print(f"start_edge_server: get model type: {model_type} successfully.")
     
     # 发送模型类型到cloud
     send_short_data(conn1, model_type, msg="model type")
@@ -123,7 +123,7 @@ def start_edge_server(socket_server1, device, conn1):    #edge从end获得数据
 
     # 接收模型分层点
     partition_point = get_short_data(conn0)
-    print(f"get partition point {partition_point[0]}, {partition_point[1]} successfully.")
+    print(f"start_edge_server: get partition point {partition_point[0]}, {partition_point[1]} successfully.")
     # 发送划分点
     send_short_data(conn1, partition_point, msg="partition strategy")   # Appear bug
 
@@ -135,7 +135,7 @@ def start_edge_server(socket_server1, device, conn1):    #edge从end获得数据
     conn0.sendall("avoid sticky".encode())
     # 接收中间数据并返回传输时延
     edge_output,transfer_latency = get_data(conn0)
-    print(f"get edge_output and transfer latency successfully.")
+    print(f"start_edge_server: get edge_output and transfer latency successfully.")
     send_short_data(conn0,transfer_latency,"transfer latency")
 
     # 连续发送两个消息 防止消息粘包
@@ -151,10 +151,10 @@ def start_edge_server(socket_server1, device, conn1):    #edge从end获得数据
     
     send_data(conn1,edge_output,"edge output")
     transfer_latency = get_short_data(conn1)
-    print(f"{model_type} edge中间数据传输完成 - {transfer_latency:.3f} ms")
+    print(f"start_edge_server: {model_type} edge中间数据传输完成 - {transfer_latency:.3f} ms")
     
     cloud_latency = get_short_data(conn1)
-    print(f"{model_type} 在云端设备上推理完成 - {cloud_latency:.3f} ms")
+    print(f"start_edge_server: {model_type} 在云端设备上推理完成 - {cloud_latency:.3f} ms")
     
     send_short_data(conn0, [edge_latency,cloud_latency], "edge latency")
 
@@ -223,7 +223,7 @@ def wait_client(p):
     :return:
     """
     conn, client = p.accept()
-    print(f"successfully connection :{conn}")
+    print(f"wait_client: successfully connection :{conn}")
     return conn,client
 
 
@@ -241,23 +241,23 @@ def send_data(conn, x, msg="msg", show=True, DBG=True):
     send_x = pickle.dumps(x)
     conn.sendall(pickle.dumps(len(send_x)))
     if DBG:
-        print(f'send_data: sent len data: {len(send_x)}')
+        print(f'send_data: sent length data: {len(send_x)}')
         
     resp_len = conn.recv(1024).decode()     # get yes len msg
     if DBG:
-        print(f'send_data: get sent len data back: {resp_len}')
+        print(f'send_data: get len data back: {resp_len}')
         
     if resp_len == 'not receive':
         conn.sendall(pickle.dumps(len(send_x)))
         resp_len = conn.recv(1024).decode()
-        print(f'send_data2: get sent len data back: {resp_len}')
+        print(f'send_data: get len data back: {resp_len}')
     
     conn.sendall(send_x)                # send intermediate data
     if DBG:
         print(f'send_data: sent intermediate data: {len(send_x)}')
     resp_data = conn.recv(1024).decode()    # get yes msg
     if show:
-        print(f"get {resp_data} , {msg} has been sent successfully")  # 表示对面已收到数据
+        print(f"send_data: get {resp_data} , {msg} has been sent successfully")  # 表示对面已收到数据
 
 
 
@@ -266,7 +266,7 @@ def send_short_data(conn, x, msg="msg", show=True):
     send_x = pickle.dumps(x)
     conn.sendall(send_x)
     if show:
-        print(f"short message , {msg} has been sent successfully")  # 表示对面已收到数据
+        print(f"send_short_data: short message , {msg} has been sent successfully")  # 表示对面已收到数据
 
 
 
@@ -287,7 +287,7 @@ def get_data(conn, DBG=True):
             print(f'get_data: get data len: {(data_len)}')
     except socket.timeout:
         conn.sendall("not receive".encode())
-        print(f'get_data: send notrsv msg')
+        print(f'get_data: get not rsv msg')
         data_len = pickle.loads(conn.recv(1024))
         
     conn.sendall("yes len".encode())
@@ -321,7 +321,7 @@ def get_short_data(conn):
         try:
             data    = conn.recv(1024)
         except:
-            print('wait for recv short data')
+            print('get_short_data: wait for recv short data')
 
     return pickle.loads(data)
 
