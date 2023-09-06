@@ -11,5 +11,4 @@
 #python ../edge_api.py -i 127.0.0.1 -p 9999 -d cpu -s 5 -t vgg_net -n wifi
 
 # "alex_net" "vgg_net" "le_net" "mobilenet"
-python edge_api.py -i 127.0.0.1 -p 9999 -d cpu -n 3g \
-                    -t mobile_net -s 1 -l 1
+python edge_api.py -i 127.0.0.1 -p 9999 -d cpu -t mobile_net -s 1 -n 3g

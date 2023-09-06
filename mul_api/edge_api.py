@@ -23,10 +23,11 @@ from net.monitor_client import MonitorClient
     "-d", "--device"        是否开启客户端GPU计算 cpu or cuda
     "-n", "--network"       网络类型 wifi or 3g or lte
     "-s", "--speed"         网络速度MB/s for wifi/lte  kB/s for 3g  
+    "-l", "--len"           任务输入数量
 """
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "t:i:p:d:n:s:", ["type=","ip=","port=","device=","network=","speed="])
+        opts, args = getopt.getopt(sys.argv[1:], "t:i:p:d:n:s:l:", ["type=","ip=","port=","device=","network=","speed=","len="])
         
     except getopt.GetoptError:
         print('input argv error')
@@ -38,6 +39,7 @@ if __name__ == '__main__':
     device = "cpu"
     network_type = "wifi"
     speed = 10
+    len = 1
     
     for opt, arg in opts:
         if opt in ("-t", "--type"):
@@ -52,14 +54,15 @@ if __name__ == '__main__':
             network_type = arg
         elif opt in ("-s", "--speed"):
             speed = int(arg)
+        elif opt in ("-l", "--len"):
+            len = int(arg)
                   
 
     if device == "cuda" and torch.cuda.is_available() == False:
         raise RuntimeError("本机器上不可以使用cuda")
 
     # step2 准备input数据
-    size    = 1
-    x = torch.rand(size=(size, 3, 224, 224), requires_grad=False)
+    x = torch.rand(size=(len, 3, 224, 224), requires_grad=False)
     x = x.to(device)
 
     # 客户端进行传输

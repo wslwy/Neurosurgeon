@@ -7,7 +7,7 @@ import speedtest as spt
 from utils import inference_utils
 
 
-def start_server(socket_server,device):
+def start_server(conn, device):
     """
     开始监听客户端传来的消息
     一般仅在 cloud_api.py 中直接调用
@@ -16,8 +16,7 @@ def start_server(socket_server,device):
     :return: None
     """
     start_time = time.time()
-    # 等待客户端连接
-    conn, client = wait_client(socket_server)
+    
 
     # 接收模型类型
     model_type = get_short_data(conn)
@@ -53,7 +52,7 @@ def start_server(socket_server,device):
 
 
 
-def start_client(ip,port,input_x,model_type,partition_point,device, conn):
+def start_client(input_x, model_type, partition_point, device, conn):
     """
     启动一个client客户端 向server端发起推理请求
     一般仅在 edge_api.py 中直接调用
@@ -65,7 +64,6 @@ def start_client(ip,port,input_x,model_type,partition_point,device, conn):
     :param device: 在本地cpu运行还是cuda运行
     :return: None
     """
-    #conn = get_socket_client(ip, port)
 
     # 发送模型类型
     send_short_data(conn, model_type, msg="model type")
@@ -99,7 +97,6 @@ def start_client(ip,port,input_x,model_type,partition_point,device, conn):
     print(f"{model_type} 在云端设备上推理完成 - {cloud_latency:.3f} ms")
 
     print("================= DNN Collaborative Inference Finished. ===================")
-    #conn.close()
 
 
 

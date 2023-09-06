@@ -28,3 +28,15 @@ cloud-edge-end network
 -   edge_api
 -   end_api
 
+single instance collaborative inference
+    - edge server connect to cloud server
+    - collaborative inference
+    - end connection
+
+multi instance collaborative inference
+    - edge server connect to cloud server
+    - multi instance collaborative inference
+    - end connection
+
+pipeline collaborative inference
+    
